@@ -1,3 +1,9 @@
+---
+services: batch, storage
+platforms: dotnet
+author: dlepow
+---
+
 # Batch .NET File Processing with ffmpeg
 
 A .NET application that uses Batch to process media files in parallel with the [ffmpeg](http://ffmpeg.org/) open-source tool. 
