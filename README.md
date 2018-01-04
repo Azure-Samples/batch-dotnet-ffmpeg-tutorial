@@ -1,6 +1,6 @@
 # Batch .NET File Processing with ffmpeg
 
-A .NET application that uses Batch to process media files in parallel with the ffmpeg open-source tool. 
+A .NET application that uses Batch to process media files in parallel with the [ffmpeg](http://ffmpeg.org/) open-source tool. 
 
 For details and explanation, see the accompanying article [Process media files in parallel with Azure Batch using the .NET API](https://docs.microsoft.com/azure/batch/tutorial-parallel-dotnet).
 
