@@ -1,57 +1,16 @@
-# Project Name
+# Batch .NET File Processing with ffmpeg
 
-(short, 1-3 sentenced, description of the project)
+A .NET application that uses Batch to process media files in parallel with the ffmpeg open-source tool. 
 
-## Features
+For details and explanation, see the accompanying article [Process media files in parallel with Azure Batch using the .NET API](https://docs.microsoft.com/azure/batch/tutorial-parallel-dotnet).
 
-This project framework provides the following features:
+## Prerequisites
 
-* Feature 1
-* Feature 2
-* ...
-
-## Getting Started
-
-### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
-
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
+- Azure Batch account and linked general-purpose Azure Storage account
+- Visual Studio 2015 or later
+- Windows 64-bit version of [ffmpeg 3.4](https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip)
 
 ## Resources
 
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+- [Azure Batch documentation](https://docs.microsoft.com/azure/batch/)
+- [Azure Batch and HPC code samples](https://github.com/Azure/azure-batch-samples)
