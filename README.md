@@ -14,7 +14,7 @@ For details and explanation, see the accompanying article [Process media files i
 
 - Azure Batch account and linked general-purpose Azure Storage account
 - Visual Studio 2015 or later
-- Windows 64-bit version of [ffmpeg 3.4](https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip)
+- Windows 64-bit version of [ffmpeg 3.4](https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip) - Add as an [application package](https://docs.microsoft.com/azure/batch/batch-application-packages) to your Batch account
 
 ## Resources
 
