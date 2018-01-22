@@ -10,14 +10,13 @@ namespace BatchDotnetTutorialFfmpeg
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Batch;
     using Microsoft.Azure.Batch.Auth;
     using Microsoft.Azure.Batch.Common;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
 
-    class Program
+    public class Program
     {
         // Update the Batch and Storage account credential strings below with the values unique to your accounts.
         // These are used when constructing connection strings for the Batch and Storage client objects.
@@ -39,7 +38,7 @@ namespace BatchDotnetTutorialFfmpeg
         private const string JobId = "WinFFmpegJob";
 
         // Application package Id and version
-        // This assumes the Windows ffmpeg app package is already added to the Batch account. 
+        // This assumes the Windows ffmpeg app package is already added to the Batch account with this Id and version. 
         // First download ffmpeg zipfile from https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip.
         // To add package to the Batch account, see https://docs.microsoft.com/azure/batch/batch-application-packages.
 
@@ -48,8 +47,11 @@ namespace BatchDotnetTutorialFfmpeg
 
         public static void Main(string[] args)
         {
-            if (String.IsNullOrEmpty(BatchAccountName) || String.IsNullOrEmpty(BatchAccountKey) || String.IsNullOrEmpty(BatchAccountUrl) ||
-                String.IsNullOrEmpty(StorageAccountName) || String.IsNullOrEmpty(StorageAccountKey))
+            if (String.IsNullOrEmpty(BatchAccountName) ||
+                String.IsNullOrEmpty(BatchAccountKey) ||
+                String.IsNullOrEmpty(BatchAccountUrl) ||
+                String.IsNullOrEmpty(StorageAccountName) ||
+                String.IsNullOrEmpty(StorageAccountKey))
             {
                 throw new InvalidOperationException("One or more account credential strings have not been populated. Please ensure that your Batch and Storage account credentials have been specified.");
             }
@@ -63,7 +65,6 @@ namespace BatchDotnetTutorialFfmpeg
                 timer.Start();
 
                 // STORAGE SETUP
-
                 // Construct the Storage account connection string
                 string storageConnectionString = String.Format("DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}",
                                                             StorageAccountName, StorageAccountKey);
@@ -77,16 +78,11 @@ namespace BatchDotnetTutorialFfmpeg
                 // Use the blob client to create the containers in blob storage
                 const string inputContainerName = "input";
                 const string outputContainerName = "output";
+
+                CreateContainerIfNotExist(blobClient, inputContainerName);
+                CreateContainerIfNotExist(blobClient, outputContainerName);
                 
-
-                CreateContainerIfNotExistAsync(blobClient, inputContainerName).Wait();
-                CreateContainerIfNotExistAsync(blobClient, outputContainerName).Wait();
-
-
-
                 // RESOURCE FILE SETUP
-
-       
                 // Input files: Specify the location of the data files that the tasks process, and
                 // put them in a List collection. Make sure you have copied the data files to:
                 // \<solutiondir>\InputFiles.
@@ -109,13 +105,14 @@ namespace BatchDotnetTutorialFfmpeg
                 // Create a Batch client and authenticate with shared key credentials.
                 // The Batch client allows the app to interact with the Batch service.
                 BatchSharedKeyCredentials sharedKeyCredentials = new BatchSharedKeyCredentials(BatchAccountUrl, BatchAccountName, BatchAccountKey);
+
                 using (BatchClient batchClient = BatchClient.Open(sharedKeyCredentials))
                 {
                     // Create the Batch pool, which contains the compute nodes that execute the tasks.
-                    CreatePoolIfNoneExist(batchClient, PoolId);
+                    CreatePoolIfNotExist(batchClient, PoolId);
 
                     // Create the job that runs the tasks.
-                    CreateJob(batchClient, JobId, PoolId);
+                    CreateJobIfNotExist(batchClient, JobId, PoolId);
 
                     // Create a collection of tasks and add them to the Batch job. 
                     // Provide a shared access signature for the tasks so that they can upload their output
@@ -124,7 +121,7 @@ namespace BatchDotnetTutorialFfmpeg
 
                     // Monitor task success or failure, specifying a maximum amount of time to wait for
                     // the tasks to complete.
-                    MonitorTasks(batchClient, JobId, TimeSpan.FromMinutes(30)).Wait();
+                    MonitorTasks(batchClient, JobId, TimeSpan.FromMinutes(30));
 
                     // Delete input container in storage
                     Console.WriteLine("Deleting container [{0}]...", inputContainerName);
@@ -143,24 +140,16 @@ namespace BatchDotnetTutorialFfmpeg
                     string response = Console.ReadLine().ToLower();
                     if (response != "n" && response != "no")
                     {
-                        batchClient.JobOperations.DeleteJobAsync(JobId).Wait();
+                        batchClient.JobOperations.DeleteJob(JobId);
                     }
 
                     Console.Write("Delete pool? [yes] no: ");
                     response = Console.ReadLine().ToLower();
                     if (response != "n" && response != "no")
                     {
-                        batchClient.PoolOperations.DeletePoolAsync(PoolId).Wait();
+                        batchClient.PoolOperations.DeletePool(PoolId);
                     }
                 }
-            }
-            catch (AggregateException ae)
-            {
-                Console.WriteLine();
-                Console.WriteLine("One or more exceptions occurred.");
-                Console.WriteLine();
-
-                PrintAggregateException(ae);
             }
             finally
             {
@@ -176,14 +165,14 @@ namespace BatchDotnetTutorialFfmpeg
         /// <summary>
         /// Creates a container with the specified name in Blob storage, unless a container with that name already exists.
         /// </summary>
-        /// <param name="blobClient">A <see cref="Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient"/>.</param>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
         /// <param name="containerName">The name for the new container.</param>
-        /// <returns>A <see cref="System.Threading.Tasks.Task"/> object that represents the asynchronous operation.</returns>
-        private static async Task CreateContainerIfNotExistAsync(CloudBlobClient blobClient, string containerName)
+        
+        private static void CreateContainerIfNotExist(CloudBlobClient blobClient, string containerName)
         {
             CloudBlobContainer container = blobClient.GetContainerReference(containerName);
 
-            if (await container.CreateIfNotExistsAsync())
+            if (container.CreateIfNotExists())
             {
                 Console.WriteLine("Container [{0}] created.", containerName);
             }
@@ -196,29 +185,32 @@ namespace BatchDotnetTutorialFfmpeg
 
         // RESOURCE FILE SETUP - FUNCTION IMPLEMENTATIONS
 
-        // UploadResourceFilesToContainer(): Uploads the specified resource files to a container.
-        //   * blobClient: Reference to a cloud blob client (Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient).
-        //   * inputContainerName: Name of the blob storage container to which the files are uploaded.
-        //   * filePaths: A collection of paths of the files to be uploaded to the container.
-        //   Returns: A collection of <see cref="ResourceFile"/> objects.
-        private static List<ResourceFile> UploadResourceFilesToContainer(CloudBlobClient blobClient, string ContainerName, List<string> filePaths)
+        /// <summary>
+        /// Uploads the specified resource files to a container.
+        /// </summary>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
+        /// <param name="containerName">Name of the blob storage container to which the files are uploaded.</param>
+        /// <param name="filePaths">A collection of paths of the files to be uploaded to the container.</param>
+        /// <returns>A collection of <see cref="ResourceFile"/> objects.</returns>
+        private static List<ResourceFile> UploadResourceFilesToContainer(CloudBlobClient blobClient, string containerName, List<string> filePaths)
         {
             List<ResourceFile> resourceFiles = new List<ResourceFile>();
 
             foreach (string filePath in filePaths)
             {
-                resourceFiles.Add(UploadResourceFileToContainer(blobClient, ContainerName, filePath));
+                resourceFiles.Add(UploadResourceFileToContainer(blobClient, containerName, filePath));
             }
 
             return resourceFiles;
         }
 
-        // UploadResourceFileToContainer(): Uploads the specified file to the specified blob container.
-        //   Note that UploadResourceFilesToContainer() calls this function to upload individual files.
-        //   * filePath: The full path to the file to upload to Storage.
-        //   * blobClient: A cloud blob client object (Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient).
-        //   * containerName: The name of the blob storage container to which the file should be uploaded.
-        //   Returns: A ResourceFile object representing the file in blob storage.
+        /// <summary>
+        /// Uploads the specified file to the specified blob container.
+        /// </summary>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
+        /// <param name="containerName">The name of the blob storage container to which the file should be uploaded.</param>
+        /// <param name="filePath">The full path to the file to upload to Storage.</param>
+        /// <returns>A ResourceFile object representing the file in blob storage.</returns>
         private static ResourceFile UploadResourceFileToContainer(CloudBlobClient blobClient, string containerName, string filePath)
         {
             Console.WriteLine("Uploading file {0} to container [{1}]...", filePath, containerName);
@@ -228,8 +220,7 @@ namespace BatchDotnetTutorialFfmpeg
 
             CloudBlobContainer container = blobClient.GetContainerReference(containerName);
             CloudBlockBlob blobData = container.GetBlockBlobReference(blobName);
-            // blobData.UploadFromFile(filePath);
-            blobData.UploadFromStream(fileStream);
+            blobData.UploadFromFile(filePath);
 
             // Set the expiry time and permissions for the blob shared access signature. In this case, no start time is specified,
             // so the shared access signature becomes valid immediately
@@ -246,13 +237,15 @@ namespace BatchDotnetTutorialFfmpeg
             return new ResourceFile(blobSasUri, blobName);
         }
 
-        // GetContainerSasUrl(): Returns a shared access signature (SAS) URL providing the specified
-        //   permissions to the specified container. The SAS URL provided is valid for 2 hours from
-        //   the time this method is called. The container must already exist in Azure Storage.
-        //   * blobClient: A CloudBlobClient object (Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient).
-        //   * containerName: The name of the container for which a SAS URL will be obtained.
-        //   * permissions: The permissions granted by the SAS URL.
-        //   Returns: A SAS URL providing the specified access to the container.
+        /// <summary>
+        /// Returns a shared access signature (SAS) URL providing the specified
+        ///  permissions to the specified container. The SAS URL provided is valid for 2 hours from
+        ///  the time this method is called. The container must already exist in Azure Storage.
+        /// </summary>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
+        /// <param name="containerName">The name of the container for which a SAS URL will be obtained.</param>
+        /// <param name="permissions">The permissions granted by the SAS URL.</param>
+        /// <returns>A SAS URL providing the specified access to the container.</returns>
         private static string GetContainerSasUrl(CloudBlobClient blobClient, string containerName, SharedAccessBlobPermissions permissions)
         {
             // Set the expiry time and permissions for the container access signature. In this case, no start time is specified,
@@ -272,14 +265,14 @@ namespace BatchDotnetTutorialFfmpeg
         }
 
 
-        // BATCH CLIENT SETUP - FUNCTION IMPLEMENTATIONS
+        // BATCH CLIENT OPERATIONS - FUNCTION IMPLEMENTATIONS
 
-        // CreatePoolIfNoneExist(): Creates the Batch pool.
-        //   batchClient: A BatchClient object.
-        //   PoolId: ID of the CloudPool object to create.
-        //   resourceFiles: A collection of ResourceFile objects representing blobs in a Storage
-        //     account container. The StartTask downloads these files from storage prior to execution.
-        private static void CreatePoolIfNoneExist(BatchClient batchClient, string poolId)
+        /// <summary>
+        /// Creates the Batch pool.
+        /// </summary>
+        /// <param name="batchClient">A BatchClient object</param>
+        /// <param name="poolId">ID of the CloudPool object to create.</param>
+        private static void CreatePoolIfNotExist(BatchClient batchClient, string poolId)
         {
             CloudPool pool = null;
             try
@@ -289,7 +282,7 @@ namespace BatchDotnetTutorialFfmpeg
                 ImageReference imageReference = new ImageReference(
                         publisher: "MicrosoftWindowsServer",
                         offer: "WindowsServer",
-                        sku: "2012-R2-Datacenter",
+                        sku: "2012-R2-Datacenter-smalldisk",
                         version: "latest");
 
                 VirtualMachineConfiguration virtualMachineConfiguration =
@@ -308,18 +301,18 @@ namespace BatchDotnetTutorialFfmpeg
                     virtualMachineSize: PoolVMSize,                                                
                     virtualMachineConfiguration: virtualMachineConfiguration);  
 
-
-
                 // Specify the application and version to install on the compute nodes
                 // This assumes that a Windows 64-bit zipfile of ffmpeg has been added to Batch account
                 // with Application Id of "ffmpeg" and Version of "3.4".
                 // Download the zipfile https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip
                 // to upload as application package
                 pool.ApplicationPackageReferences = new List<ApplicationPackageReference>
+                {
+                    new ApplicationPackageReference
                     {
-                    new ApplicationPackageReference {
                     ApplicationId = appPackageId,
-                    Version = appPackageVersion}
+                    Version = appPackageVersion
+                    }
                 };
 
                 pool.Commit();
@@ -327,7 +320,7 @@ namespace BatchDotnetTutorialFfmpeg
             catch (BatchException be)
             {
                 // Accept the specific error code PoolExists as that is expected if the pool already exists
-                if (be.RequestInformation?.BatchError != null && be.RequestInformation.BatchError.Code == BatchErrorCodeStrings.PoolExists)
+                if (be.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.PoolExists)
                 {
                     Console.WriteLine("The pool {0} already existed when we tried to create it", poolId);
                 }
@@ -338,11 +331,13 @@ namespace BatchDotnetTutorialFfmpeg
             }
         }
 
-        // CreateJob(): Creates a job in the specified pool.
-        //   batchClient: A BatchClient object.
-        //   jobId: ID of the job to create.
-        //   poolId: ID of the CloudPool object in which to create the job.
-        private static void CreateJob(BatchClient batchClient, string jobId, string poolId)
+        /// <summary>
+        /// Creates a job in the specified pool.
+        /// </summary>
+        /// <param name="batchClient">A BatchClient object.</param>
+        /// <param name="jobId">ID of the job to create.</param>
+        /// <param name="poolId">ID of the CloudPool object in which to create the job.</param>
+        private static void CreateJobIfNotExist(BatchClient batchClient, string jobId, string poolId)
         {
             try
             {
@@ -357,7 +352,7 @@ namespace BatchDotnetTutorialFfmpeg
             catch (BatchException be)
             {
                 // Accept the specific error code JobExists as that is expected if the job already exists
-                if (be.RequestInformation?.BatchError != null && be.RequestInformation.BatchError.Code == BatchErrorCodeStrings.JobExists)
+                if (be.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.JobExists)
                 {
                     Console.WriteLine("The job {0} already existed when we tried to create it", jobId);
                 }
@@ -368,15 +363,17 @@ namespace BatchDotnetTutorialFfmpeg
             }
         }
 
-        // AddTasks(): Creates tasks to process each of the specified input files, and submits them
-        //   to the specified job for execution.
-        //     batchClient: A BatchClient object.
-        //     jobId: The ID of the job to which the tasks are added.
-        //     inputFiles: A collection of ResourceFile objects representing the input files
-        //       to be processed by the tasks executed on the compute nodes.
-        //     outputContainerSasUrl: The shared access signature URL for the Azure Storage
-        //       container that will hold the output files that the tasks create.
-        //   Returns: A collection of the submitted cloud tasks.
+        /// <summary>
+        /// 
+        /// </summary>Creates tasks to process each of the specified input files, and submits them
+        ///  to the specified job for execution.
+        /// <param name="batchClient">A BatchClient object.</param>
+        /// <param name="jobId">ID of the job to which the tasks are added.</param>
+        /// <param name="inputFiles">A collection of ResourceFile objects representing the input file
+        /// to be processed by the tasks executed on the compute nodes.</param>
+        /// <param name="outputContainerSasUrl">The shared access signature URL for the Azure 
+        /// Storagecontainer that will hold the output files that the tasks create.</param>
+        /// <returns>A collection of the submitted cloud tasks.</returns>
         private static List<CloudTask> AddTasks(BatchClient batchClient, string jobId, List<ResourceFile> inputFiles, string outputContainerSasUrl)
         {
             Console.WriteLine("Adding {0} tasks to job [{1}]...", inputFiles.Count, jobId);
@@ -384,20 +381,16 @@ namespace BatchDotnetTutorialFfmpeg
             // Create a collection to hold the tasks added to the job:
             List<CloudTask> tasks = new List<CloudTask>();
 
-            // Create each task. The start task copies the application executable (ffmpeg.exe) to the
-            // node's shared directory, so the cloud tasks can access this application via the shared
-            // directory on whichever node each task runs.
-
-            foreach (ResourceFile inputFile in inputFiles)
+            for (int i = 0; i < inputFiles.Count; i++)
             {
                 // Assign a task ID for each iteration
-                string taskId = "task_" + inputFiles.IndexOf(inputFile);
+                string taskId = String.Format("Task{0}", i);
 
                 // Define task command line to convert the video format from MP4 to MP3 using ffmpeg.
                 // Note that ffmpeg syntax specifies the format as the file extension of the input file
                 // and the output file respectively. In this case inputs are MP4.
                 string appPath = String.Format("%AZ_BATCH_APP_PACKAGE_{0}#{1}%", appPackageId, appPackageVersion);
-                string inputMediaFile = inputFile.FilePath;
+                string inputMediaFile = inputFiles[i].FilePath;
                 string outputMediaFile = String.Format("{0}{1}",
                     System.IO.Path.GetFileNameWithoutExtension(inputMediaFile),
                     ".mp3");
@@ -405,7 +398,7 @@ namespace BatchDotnetTutorialFfmpeg
 
                 // Create a cloud task (with the task ID and command line) and add it to the task list
                 CloudTask task = new CloudTask(taskId, taskCommandLine);
-                task.ResourceFiles = new List<ResourceFile> { inputFile };
+                task.ResourceFiles = new List<ResourceFile> { inputFiles[i] };
 
                 // Task output file will be uploaded to the output container in Storage.
 
@@ -416,69 +409,65 @@ namespace BatchDotnetTutorialFfmpeg
                                                        new OutputFileUploadOptions(OutputFileUploadCondition.TaskSuccess));
                 outputFileList.Add(outputFile);
                 task.OutputFiles = outputFileList;
-
                 tasks.Add(task);
-
             }
 
             // Call BatchClient.JobOperations.AddTask() to add the tasks as a collection rather than making a
             // separate call for each. Bulk task submission helps to ensure efficient underlying API
-            // calls to the Batch service. calls AddTasksAsync() so the add operation doesn't hang up program execution.
-            batchClient.JobOperations.AddTaskAsync(jobId, tasks).Wait();
+            // calls to the Batch service. 
+            batchClient.JobOperations.AddTask(jobId, tasks);
 
             return tasks;
         }
 
-        // MonitorTasks(): Asynchronously monitors the specified tasks for completion and returns a value indicating
-        //   whether all tasks completed successfully within the timeout period.
-        //   * batchClient: A BatchClient object.
-        //   * jobId: The ID of the job containing the tasks to be monitored.
-        //   * timeout: The period of time to wait for the tasks to reach the completed state.
-        //   Returns: A Boolean indicating true if all tasks in the specified job completed successfully
-        //      (with an exit code of 0) within the specified timeout period; otherwise false.
-        private static async Task<bool> MonitorTasks(BatchClient batchClient, string jobId, TimeSpan timeout)
+        /// <summary>
+        /// Monitors the specified tasks for completion and whether errors occurred.
+        /// </summary>
+        /// <param name="batchClient">A BatchClient object.</param>
+        /// <param name="jobId">ID of the job containing the tasks to be monitored.</param>
+        /// <param name="timeout">The period of time to wait for the tasks to reach the completed state.</param>
+        private static void MonitorTasks(BatchClient batchClient, string jobId, TimeSpan timeout)
         {
             bool allTasksSuccessful = true;
             const string successMessage = "All tasks reached state Completed.";
             const string failureMessage = "One or more tasks failed to reach the Completed state within the timeout period.";
 
-            // Obtain the collection of tasks currently managed by the job. Note that we use a detail level to
-            // specify that only the "id" property of each task should be populated. Using a detail level for
-            // all list operations helps to lower response time from the Batch service.
+            // Obtain the collection of tasks currently managed by the job. 
+            // Use a detail level to specify that only the "id" property of each task should be populated. 
+            // See https://docs.microsoft.com/en-us/azure/batch/batch-efficient-list-queries
+
             ODATADetailLevel detail = new ODATADetailLevel(selectClause: "id");
-            List<CloudTask> tasks = await batchClient.JobOperations.ListTasks(JobId, detail).ToListAsync();
+
+            IEnumerable<CloudTask> addedTasks = batchClient.JobOperations.ListTasks(jobId, detail);
 
             Console.WriteLine("Monitoring all tasks for 'Completed' state, timeout in {0}...", timeout.ToString());
 
             // We use a TaskStateMonitor to monitor the state of our tasks. In this case, we will wait for all tasks to
             // reach the Completed state.
+
             TaskStateMonitor taskStateMonitor = batchClient.Utilities.CreateTaskStateMonitor();
             try
             {
-                await taskStateMonitor.WhenAll(tasks, TaskState.Completed, timeout);
+                batchClient.Utilities.CreateTaskStateMonitor().WaitAll(addedTasks, TaskState.Completed, timeout);
             }
             catch (TimeoutException)
             {
-                await batchClient.JobOperations.TerminateJobAsync(jobId, failureMessage);
+                batchClient.JobOperations.TerminateJob(jobId, failureMessage);
                 Console.WriteLine(failureMessage);
-                return false;
             }
-
-            await batchClient.JobOperations.TerminateJobAsync(jobId, successMessage);
+             batchClient.JobOperations.TerminateJob(jobId, successMessage);
 
             // All tasks have reached the "Completed" state, however, this does not guarantee all tasks completed successfully.
-            // Here we further check each task's ExecutionInfo property to ensure that it did not encounter a scheduling error
+            // Here we further check each task's ExecutionInformation property to ensure that it did not encounter a scheduling error
             // or return a non-zero exit code.
 
             // Update the detail level to populate only the task id and executionInfo properties.
-            // We refresh the tasks below, and need only this information for each task.
             detail.SelectClause = "id, executionInfo";
 
-            foreach (CloudTask task in tasks)
-            {
-                // Populate the task's properties with the latest info from the Batch service
-                await task.RefreshAsync(detail);
+            IEnumerable<CloudTask> completedTasks = batchClient.JobOperations.ListTasks(jobId, detail);
 
+            foreach (CloudTask task in completedTasks)
+            {
                 if (task.ExecutionInformation.Result == TaskExecutionResult.Failure)
                 {
                     // A task with failure information set indicates there was a problem with the task. It is important to note that
@@ -501,21 +490,6 @@ namespace BatchDotnetTutorialFfmpeg
             if (allTasksSuccessful)
             {
                 Console.WriteLine("Success! All tasks completed successfully within the specified timeout period. Output files uploaded to output container.");
-            }
-
-            return allTasksSuccessful;
-        }
-
-        // PrintAggregateException(): Processes all exceptions inside an aggregate exception object
-        //   and writes each inner exception to the console.
-        //   * aggregateException: The AggregateException object to process.</param>
-        public static void PrintAggregateException(AggregateException aggregateException)
-        {
-            // Flatten the aggregate and iterate over its inner exceptions, printing each
-            foreach (Exception exception in aggregateException.Flatten().InnerExceptions)
-            {
-                Console.WriteLine(exception.ToString());
-                Console.WriteLine();
             }
         }
     }
