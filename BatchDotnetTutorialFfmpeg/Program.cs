@@ -165,7 +165,7 @@ namespace BatchDotnetTutorialFfmpeg
         /// <summary>
         /// Creates a container with the specified name in Blob storage, unless a container with that name already exists.
         /// </summary>
-        /// <param name="blobClient">A <see cref="Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient"/>.</param>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
         /// <param name="containerName">The name for the new container.</param>
         
         private static void CreateContainerIfNotExist(CloudBlobClient blobClient, string containerName)
@@ -188,17 +188,17 @@ namespace BatchDotnetTutorialFfmpeg
         /// <summary>
         /// Uploads the specified resource files to a container.
         /// </summary>
-        /// <param name="blobClient">Reference to a cloud blob client (Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient).</param>
-        /// <param name="ContainerName">Name of the blob storage container to which the files are uploaded.</param>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
+        /// <param name="containerName">Name of the blob storage container to which the files are uploaded.</param>
         /// <param name="filePaths">A collection of paths of the files to be uploaded to the container.</param>
         /// <returns>A collection of <see cref="ResourceFile"/> objects.</returns>
-        private static List<ResourceFile> UploadResourceFilesToContainer(CloudBlobClient blobClient, string ContainerName, List<string> filePaths)
+        private static List<ResourceFile> UploadResourceFilesToContainer(CloudBlobClient blobClient, string containerName, List<string> filePaths)
         {
             List<ResourceFile> resourceFiles = new List<ResourceFile>();
 
             foreach (string filePath in filePaths)
             {
-                resourceFiles.Add(UploadResourceFileToContainer(blobClient, ContainerName, filePath));
+                resourceFiles.Add(UploadResourceFileToContainer(blobClient, containerName, filePath));
             }
 
             return resourceFiles;
@@ -207,7 +207,7 @@ namespace BatchDotnetTutorialFfmpeg
         /// <summary>
         /// Uploads the specified file to the specified blob container.
         /// </summary>
-        /// <param name="blobClient">Reference to a cloud blob client (Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient).</param>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
         /// <param name="containerName">The name of the blob storage container to which the file should be uploaded.</param>
         /// <param name="filePath">The full path to the file to upload to Storage.</param>
         /// <returns>A ResourceFile object representing the file in blob storage.</returns>
@@ -242,7 +242,7 @@ namespace BatchDotnetTutorialFfmpeg
         ///  permissions to the specified container. The SAS URL provided is valid for 2 hours from
         ///  the time this method is called. The container must already exist in Azure Storage.
         /// </summary>
-        /// <param name="blobClient">Reference to a cloud blob client (Microsoft.WindowsAzure.Storage.Blob.CloudBlobClient).</param>
+        /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
         /// <param name="containerName">The name of the container for which a SAS URL will be obtained.</param>
         /// <param name="permissions">The permissions granted by the SAS URL.</param>
         /// <returns>A SAS URL providing the specified access to the container.</returns>
