@@ -288,8 +288,7 @@ namespace BatchDotnetTutorialFfmpeg
                 VirtualMachineConfiguration virtualMachineConfiguration =
                 new VirtualMachineConfiguration(
                     imageReference: imageReference,
-                    nodeAgentSkuId: "batch.node.windows amd64"
-                    );
+                    nodeAgentSkuId: "batch.node.windows amd64");
 
                 // Create an unbound pool. No pool is actually created in the Batch service until we call
                 // CloudPool.Commit(). This CloudPool instance is therefore considered "unbound," and we can
@@ -455,7 +454,7 @@ namespace BatchDotnetTutorialFfmpeg
                 batchClient.JobOperations.TerminateJob(jobId, failureMessage);
                 Console.WriteLine(failureMessage);
             }
-             batchClient.JobOperations.TerminateJob(jobId, successMessage);
+            batchClient.JobOperations.TerminateJob(jobId, successMessage);
 
             // All tasks have reached the "Completed" state, however, this does not guarantee all tasks completed successfully.
             // Here we further check each task's ExecutionInformation property to ensure that it did not encounter a scheduling error
