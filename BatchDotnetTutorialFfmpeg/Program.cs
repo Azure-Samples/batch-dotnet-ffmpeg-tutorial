@@ -1,7 +1,4 @@
-﻿// Companion project to the following article:
-// https://docs.microsoft.com/azure/batch/tutorial-parallel-dotnet
-
-// BatchDotnetTutorialFfmpeg is a .NET Framework console app project using Batch SDK for .NET.
+﻿// BatchDotnetTutorialFfmpeg is a .NET Framework console app project using Batch SDK for .NET.
 // Demonstrates a basic Batch pool that runs ffmpeg tasks to transcode media files.
 
 namespace BatchDotnetTutorialFfmpeg
