@@ -8,6 +8,8 @@ author: dlepow
 
 A .NET application that uses Batch to process media files in parallel with the [ffmpeg](http://ffmpeg.org/) open-source tool. 
 
+For details and explanation, see the accompanying article [Run a parallel workload with Azure Batch using the .NET API](https://docs.microsoft.com/azure/batch/tutorial-parallel-dotnet).
+
 
 ## Prerequisites
 
