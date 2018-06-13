@@ -19,13 +19,13 @@ namespace BatchDotnetTutorialFfmpeg
         // These are used when constructing connection strings for the Batch and Storage client objects.
 
 // Batch account credentials
-        private const string BatchAccountName = "danlep0530";
-        private const string BatchAccountKey = "pA4i4p8BuSfUOQobRv3W7FZ8MWVEouCRPiA1WIk5jetgpw8F7BKoqruxj6N6fKt5QdcEeLK2w9XvpRrsfPEHTQ==";
-        private const string BatchAccountUrl = "https://danlep0530.eastus.batch.azure.com";
+        private const string BatchAccountName = "";
+        private const string BatchAccountKey = "";
+        private const string BatchAccountUrl = "";
 
         // Storage account credentials
-        private const string StorageAccountName = "danlep0530";
-        private const string StorageAccountKey = "IEmWaPoYjBKxvbKCG+Y+iBVs3hw2/WR95xHHTP74BXeyAxp6zPqOuiDw11IzmnV5t08kepHqCU19YRVlrqoctA==";
+        private const string StorageAccountName = "";
+        private const string StorageAccountKey = "";
 
         // Pool and Job constants
         private const string PoolId = "WinFFmpegPool";
