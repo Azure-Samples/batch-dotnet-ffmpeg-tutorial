@@ -18,7 +18,7 @@ namespace BatchDotnetTutorialFfmpeg
         // Update the Batch and Storage account credential strings below with the values unique to your accounts.
         // These are used when constructing connection strings for the Batch and Storage client objects.
 
-// Batch account credentials
+        // Batch account credentials
         private const string BatchAccountName = "";
         private const string BatchAccountKey = "";
         private const string BatchAccountUrl = "";
