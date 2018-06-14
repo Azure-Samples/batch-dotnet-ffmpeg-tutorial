@@ -84,7 +84,7 @@ namespace BatchDotnetTutorialFfmpeg
                 // put them in a List collection. Make sure you have copied the data files to:
                 // \<solutiondir>\InputFiles.
 
-                List<string> inputFilePaths = new List<string>(Directory.GetFileSystemEntries(@"..\..\InputFiles", "*.mp4",
+                List<string> inputFilePaths = new List<string>(Directory.GetFileSystemEntries(@"..\..\..\InputFiles", "*.mp4",
                                          SearchOption.TopDirectoryOnly));
                
                 // Upload data files.
