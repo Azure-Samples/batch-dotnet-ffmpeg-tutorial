@@ -7,6 +7,7 @@ namespace BatchDotnetTutorialFfmpeg
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Batch;
     using Microsoft.Azure.Batch.Auth;
     using Microsoft.Azure.Batch.Common;
@@ -44,109 +45,23 @@ namespace BatchDotnetTutorialFfmpeg
 
         public static void Main(string[] args)
         {
-            if (String.IsNullOrEmpty(BatchAccountName) ||
-                String.IsNullOrEmpty(BatchAccountKey) ||
-                String.IsNullOrEmpty(BatchAccountUrl) ||
-                String.IsNullOrEmpty(StorageAccountName) ||
-                String.IsNullOrEmpty(StorageAccountKey))
+            if (String.IsNullOrEmpty(BatchAccountName) || String.IsNullOrEmpty(BatchAccountKey) || String.IsNullOrEmpty(BatchAccountUrl) ||
+                String.IsNullOrEmpty(StorageAccountName) || String.IsNullOrEmpty(StorageAccountKey))
             {
                 throw new InvalidOperationException("One or more account credential strings have not been populated. Please ensure that your Batch and Storage account credentials have been specified.");
             }
 
             try
             {
-                // START TIMER
-                Console.WriteLine("Sample start: {0}", DateTime.Now);
+                // Call the asynchronous version of the Main() method. This is done so that we can await various
+                // calls to async methods within the "Main" method of this console application.
+                MainAsync().Wait();
+            }
+            catch (AggregateException)
+            {
                 Console.WriteLine();
-                Stopwatch timer = new Stopwatch();
-                timer.Start();
-
-                // STORAGE SETUP
-                // Construct the Storage account connection string
-                string storageConnectionString = String.Format("DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}",
-                                                            StorageAccountName, StorageAccountKey);
-
-                // Retrieve the storage account
-                CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
-
-                // Create the blob client, which will be used to obtain references to blob storage containers
-                CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-
-                // Use the blob client to create the containers in blob storage
-                const string inputContainerName = "input";
-                const string outputContainerName = "output";
-
-                CreateContainerIfNotExist(blobClient, inputContainerName);
-                CreateContainerIfNotExist(blobClient, outputContainerName);
-                
-                // RESOURCE FILE SETUP
-                // Input files: Specify the location of the data files that the tasks process, and
-                // put them in a List collection. Make sure you have copied the data files to:
-                // \<solutiondir>\InputFiles.
-
-                List<string> inputFilePaths = new List<string>(Directory.GetFileSystemEntries(@"..\..\..\InputFiles", "*.mp4",
-                                         SearchOption.TopDirectoryOnly));
-               
-                // Upload data files.
-                // Upload the data files using UploadResourceFilesToContainer(). This data will be
-                // processed by each of the tasks that are executed on the compute nodes within the pool.
-                List<ResourceFile> inputFiles = UploadResourceFilesToContainer(blobClient, inputContainerName, inputFilePaths);
-
-                // Obtain a shared access signature that provides write access to the output container to which
-                // the tasks will upload their output.
-                string outputContainerSasUrl = GetContainerSasUrl(blobClient, outputContainerName, SharedAccessBlobPermissions.Write);
-
-
-                // CREATE BATCH CLIENT / CREATE POOL / CREATE JOB / ADD TASKS
-
-                // Create a Batch client and authenticate with shared key credentials.
-                // The Batch client allows the app to interact with the Batch service.
-                BatchSharedKeyCredentials sharedKeyCredentials = new BatchSharedKeyCredentials(BatchAccountUrl, BatchAccountName, BatchAccountKey);
-
-                using (BatchClient batchClient = BatchClient.Open(sharedKeyCredentials))
-                {
-                    // Create the Batch pool, which contains the compute nodes that execute the tasks.
-                    CreatePoolIfNotExist(batchClient, PoolId);
-
-                    // Create the job that runs the tasks.
-                    CreateJobIfNotExist(batchClient, JobId, PoolId);
-
-                    // Create a collection of tasks and add them to the Batch job. 
-                    // Provide a shared access signature for the tasks so that they can upload their output
-                    // to the Storage container.
-                    AddTasks(batchClient, JobId, inputFiles, outputContainerSasUrl);
-
-                    // Monitor task success or failure, specifying a maximum amount of time to wait for
-                    // the tasks to complete.
-                    MonitorTasks(batchClient, JobId, TimeSpan.FromMinutes(30));
-
-                    // Delete input container in storage
-                    Console.WriteLine("Deleting container [{0}]...", inputContainerName);
-                    CloudBlobContainer container = blobClient.GetContainerReference(inputContainerName);
-                    container.DeleteIfExists();
-                   
-                    // Print out timing info
-                    timer.Stop();
-                    Console.WriteLine();
-                    Console.WriteLine("Sample end: {0}", DateTime.Now);
-                    Console.WriteLine("Elapsed time: {0}", timer.Elapsed);
-
-                    // Clean up Batch resources (if the user so chooses)
-                    Console.WriteLine();
-                    Console.Write("Delete job? [yes] no: ");
-                    string response = Console.ReadLine().ToLower();
-                    if (response != "n" && response != "no")
-                    {
-                        batchClient.JobOperations.DeleteJob(JobId);
-                    }
-
-                    Console.Write("Delete pool? [yes] no: ");
-                    response = Console.ReadLine().ToLower();
-                    if (response != "n" && response != "no")
-                    {
-                        batchClient.PoolOperations.DeletePool(PoolId);
-                    }
-                }
+                Console.WriteLine("One or more exceptions occurred.");
+                Console.WriteLine();
             }
             finally
             {
@@ -156,7 +71,107 @@ namespace BatchDotnetTutorialFfmpeg
             }
         }
 
+        /// <summary>
+        /// Provides an asynchronous version of the Main method, allowing for the awaiting of async method calls within.
+        /// </summary>
+        /// <returns>A <see cref="System.Threading.Tasks.Task"/> object that represents the asynchronous operation.</returns>
+        private static async Task MainAsync()
+        {
+            Console.WriteLine("Sample start: {0}", DateTime.Now);
+            Console.WriteLine();
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
 
+            // Construct the Storage account connection string
+            string storageConnectionString =
+                $"DefaultEndpointsProtocol=https;AccountName={StorageAccountName};AccountKey={StorageAccountKey}";
+
+            // Retrieve the storage account
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
+
+            // Create the blob client, for use in obtaining references to blob storage containers
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+
+             
+            // Use the blob client to create the containers in blob storage
+            const string inputContainerName = "input";
+            const string outputContainerName = "output";
+
+            await CreateContainerIfNotExistAsync(blobClient, inputContainerName);
+            await CreateContainerIfNotExistAsync(blobClient, outputContainerName);
+
+            // RESOURCE FILE SETUP
+            // Input files: Specify the location of the data files that the tasks process, and
+            // put them in a List collection. Make sure you have copied the data files to:
+            // \<solutiondir>\InputFiles.
+
+            string inputPath = Path.Combine(Environment.CurrentDirectory, "InputFiles");
+
+            List<string> inputFilePaths = new List<string>(Directory.GetFileSystemEntries(inputPath, "*.mp4",
+                                         SearchOption.TopDirectoryOnly));
+               
+            // Upload data files.
+            // Upload the data files using UploadResourceFilesToContainer(). This data will be
+            // processed by each of the tasks that are executed on the compute nodes within the pool.
+            List<ResourceFile> inputFiles = await UploadFilesToContainerAsync(blobClient, inputContainerName, inputFilePaths);
+
+            // Obtain a shared access signature that provides write access to the output container to which
+            // the tasks will upload their output.
+            string outputContainerSasUrl = GetContainerSasUrl(blobClient, outputContainerName, SharedAccessBlobPermissions.Write);
+
+
+            // CREATE BATCH CLIENT / CREATE POOL / CREATE JOB / ADD TASKS
+
+            // Create a Batch client and authenticate with shared key credentials.
+            // The Batch client allows the app to interact with the Batch service.
+            BatchSharedKeyCredentials sharedKeyCredentials = new BatchSharedKeyCredentials(BatchAccountUrl, BatchAccountName, BatchAccountKey);
+
+            using (BatchClient batchClient = BatchClient.Open(sharedKeyCredentials))
+            {
+                // Create the Batch pool, which contains the compute nodes that execute the tasks.
+                CreatePoolIfNotExist(batchClient, PoolId);
+
+                // Create the job that runs the tasks.
+                CreateJobIfNotExist(batchClient, JobId, PoolId);
+
+                // Create a collection of tasks and add them to the Batch job. 
+                // Provide a shared access signature for the tasks so that they can upload their output
+                // to the Storage container.
+                AddTasks(batchClient, JobId, inputFiles, outputContainerSasUrl);
+
+                // Monitor task success or failure, specifying a maximum amount of time to wait for
+                // the tasks to complete.
+                MonitorTasks(batchClient, JobId, TimeSpan.FromMinutes(30));
+
+                // Delete input container in storage
+                Console.WriteLine("Deleting container [{0}]...", inputContainerName);
+                CloudBlobContainer container = blobClient.GetContainerReference(inputContainerName);
+                await container.DeleteIfExistsAsync();
+                   
+                // Print out timing info
+                timer.Stop();
+                Console.WriteLine();
+                Console.WriteLine("Sample end: {0}", DateTime.Now);
+                Console.WriteLine("Elapsed time: {0}", timer.Elapsed);
+
+                // Clean up Batch resources (if the user so chooses)
+                Console.WriteLine();
+                Console.Write("Delete job? [yes] no: ");
+                string response = Console.ReadLine().ToLower();
+                if (response != "n" && response != "no")
+                {
+                   batchClient.JobOperations.DeleteJob(JobId);
+                }
+
+                Console.Write("Delete pool? [yes] no: ");
+                response = Console.ReadLine().ToLower();
+                if (response != "n" && response != "no")
+                {
+                    batchClient.PoolOperations.DeletePool(PoolId);
+                }
+            }
+        }
+       
         // FUNCTION IMPLEMENTATIONS
 
         /// <summary>
@@ -164,19 +179,12 @@ namespace BatchDotnetTutorialFfmpeg
         /// </summary>
         /// <param name="blobClient">A <see cref="CloudBlobClient"/>.</param>
         /// <param name="containerName">The name for the new container.</param>
-        
-        private static void CreateContainerIfNotExist(CloudBlobClient blobClient, string containerName)
+
+        private static async Task CreateContainerIfNotExistAsync(CloudBlobClient blobClient, string containerName)
         {
             CloudBlobContainer container = blobClient.GetContainerReference(containerName);
-
-            if (container.CreateIfNotExists())
-            {
-                Console.WriteLine("Container [{0}] created.", containerName);
-            }
-            else
-            {
-                Console.WriteLine("Container [{0}] exists, skipping creation.", containerName);
-            }
+            await container.CreateIfNotExistsAsync();
+            Console.WriteLine("Creating container [{0}].", containerName);
         }
 
 
@@ -189,13 +197,13 @@ namespace BatchDotnetTutorialFfmpeg
         /// <param name="containerName">Name of the blob storage container to which the files are uploaded.</param>
         /// <param name="filePaths">A collection of paths of the files to be uploaded to the container.</param>
         /// <returns>A collection of <see cref="ResourceFile"/> objects.</returns>
-        private static List<ResourceFile> UploadResourceFilesToContainer(CloudBlobClient blobClient, string containerName, List<string> filePaths)
+        private static async Task<List<ResourceFile>> UploadFilesToContainerAsync(CloudBlobClient blobClient, string inputContainerName, List<string> filePaths)
         {
             List<ResourceFile> resourceFiles = new List<ResourceFile>();
 
             foreach (string filePath in filePaths)
             {
-                resourceFiles.Add(UploadResourceFileToContainer(blobClient, containerName, filePath));
+                resourceFiles.Add(await UploadResourceFileToContainerAsync(blobClient, inputContainerName, filePath));
             }
 
             return resourceFiles;
@@ -208,7 +216,7 @@ namespace BatchDotnetTutorialFfmpeg
         /// <param name="containerName">The name of the blob storage container to which the file should be uploaded.</param>
         /// <param name="filePath">The full path to the file to upload to Storage.</param>
         /// <returns>A ResourceFile object representing the file in blob storage.</returns>
-        private static ResourceFile UploadResourceFileToContainer(CloudBlobClient blobClient, string containerName, string filePath)
+        private static async Task<ResourceFile> UploadResourceFileToContainerAsync(CloudBlobClient blobClient, string containerName, string filePath)
         {
             Console.WriteLine("Uploading file {0} to container [{1}]...", filePath, containerName);
 
@@ -217,7 +225,7 @@ namespace BatchDotnetTutorialFfmpeg
 
             CloudBlobContainer container = blobClient.GetContainerReference(containerName);
             CloudBlockBlob blobData = container.GetBlockBlobReference(blobName);
-            blobData.UploadFromFile(filePath);
+            await blobData.UploadFromFileAsync(filePath);
 
             // Set the expiry time and permissions for the blob shared access signature. In this case, no start time is specified,
             // so the shared access signature becomes valid immediately
