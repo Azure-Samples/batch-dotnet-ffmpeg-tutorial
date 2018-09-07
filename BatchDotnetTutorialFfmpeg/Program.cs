@@ -132,19 +132,19 @@ namespace BatchDotnetTutorialFfmpeg
             using (BatchClient batchClient = BatchClient.Open(sharedKeyCredentials))
             {
                 // Create the Batch pool, which contains the compute nodes that execute the tasks.
-                CreatePoolIfNotExist(batchClient, PoolId);
+                await CreatePoolIfNotExistAsync(batchClient, PoolId);
 
                 // Create the job that runs the tasks.
-                CreateJobIfNotExist(batchClient, JobId, PoolId);
+                await CreateJobAsync(batchClient, JobId, PoolId);
 
                 // Create a collection of tasks and add them to the Batch job. 
                 // Provide a shared access signature for the tasks so that they can upload their output
                 // to the Storage container.
-                AddTasks(batchClient, JobId, inputFiles, outputContainerSasUrl);
+                await AddTasksAsync(batchClient, JobId, inputFiles, outputContainerSasUrl);
 
                 // Monitor task success or failure, specifying a maximum amount of time to wait for
                 // the tasks to complete.
-                MonitorTasks(batchClient, JobId, TimeSpan.FromMinutes(30));
+                await MonitorTasks(batchClient, JobId, TimeSpan.FromMinutes(30));
 
                 // Delete input container in storage
                 Console.WriteLine("Deleting container [{0}]...", inputContainerName);
@@ -163,14 +163,14 @@ namespace BatchDotnetTutorialFfmpeg
                 string response = Console.ReadLine().ToLower();
                 if (response != "n" && response != "no")
                 {
-                   batchClient.JobOperations.DeleteJob(JobId);
+                   await batchClient.JobOperations.DeleteJobAsync(JobId);
                 }
 
                 Console.Write("Delete pool? [yes] no: ");
                 response = Console.ReadLine().ToLower();
                 if (response != "n" && response != "no")
                 {
-                    batchClient.PoolOperations.DeletePool(PoolId);
+                    await batchClient.PoolOperations.DeletePoolAsync(PoolId);
                 }
             }
         }
@@ -280,7 +280,7 @@ namespace BatchDotnetTutorialFfmpeg
         /// </summary>
         /// <param name="batchClient">A BatchClient object</param>
         /// <param name="poolId">ID of the CloudPool object to create.</param>
-        private static void CreatePoolIfNotExist(BatchClient batchClient, string poolId)
+        private static async Task CreatePoolIfNotExistAsync(BatchClient batchClient, string poolId)
         {
             CloudPool pool = null;
             try
@@ -322,7 +322,7 @@ namespace BatchDotnetTutorialFfmpeg
                     }
                 };
 
-                pool.Commit();
+                await pool.CommitAsync();
             }
             catch (BatchException be)
             {
@@ -344,31 +344,18 @@ namespace BatchDotnetTutorialFfmpeg
         /// <param name="batchClient">A BatchClient object.</param>
         /// <param name="jobId">ID of the job to create.</param>
         /// <param name="poolId">ID of the CloudPool object in which to create the job.</param>
-        private static void CreateJobIfNotExist(BatchClient batchClient, string jobId, string poolId)
+        private static async Task CreateJobAsync(BatchClient batchClient, string jobId, string poolId)
         {
-            try
-            {
+            
                 Console.WriteLine("Creating job [{0}]...", jobId);
 
                 CloudJob job = batchClient.JobOperations.CreateJob();
                 job.Id = jobId;
                 job.PoolInformation = new PoolInformation { PoolId = poolId };
 
-                job.Commit();
-            }
-            catch (BatchException be)
-            {
-                // Accept the specific error code JobExists as that is expected if the job already exists
-                if (be.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.JobExists)
-                {
-                    Console.WriteLine("The job {0} already existed when we tried to create it", jobId);
-                }
-                else
-                {
-                    throw; // Any other exception is unexpected
-                }
-            }
+                await job.CommitAsync();
         }
+       
 
         /// <summary>
         /// 
@@ -381,7 +368,7 @@ namespace BatchDotnetTutorialFfmpeg
         /// <param name="outputContainerSasUrl">The shared access signature URL for the Azure 
         /// Storagecontainer that will hold the output files that the tasks create.</param>
         /// <returns>A collection of the submitted cloud tasks.</returns>
-        private static List<CloudTask> AddTasks(BatchClient batchClient, string jobId, List<ResourceFile> inputFiles, string outputContainerSasUrl)
+        private static async Task<List<CloudTask>> AddTasksAsync(BatchClient batchClient, string jobId, List<ResourceFile> inputFiles, string outputContainerSasUrl)
         {
             Console.WriteLine("Adding {0} tasks to job [{1}]...", inputFiles.Count, jobId);
 
@@ -422,7 +409,7 @@ namespace BatchDotnetTutorialFfmpeg
             // Call BatchClient.JobOperations.AddTask() to add the tasks as a collection rather than making a
             // separate call for each. Bulk task submission helps to ensure efficient underlying API
             // calls to the Batch service. 
-            batchClient.JobOperations.AddTask(jobId, tasks);
+            await batchClient.JobOperations.AddTaskAsync(jobId, tasks);
 
             return tasks;
         }
@@ -433,7 +420,7 @@ namespace BatchDotnetTutorialFfmpeg
         /// <param name="batchClient">A BatchClient object.</param>
         /// <param name="jobId">ID of the job containing the tasks to be monitored.</param>
         /// <param name="timeout">The period of time to wait for the tasks to reach the completed state.</param>
-        private static void MonitorTasks(BatchClient batchClient, string jobId, TimeSpan timeout)
+        private static async Task<bool> MonitorTasks(BatchClient batchClient, string jobId, TimeSpan timeout)
         {
             bool allTasksSuccessful = true;
             const string successMessage = "All tasks reached state Completed.";
@@ -445,7 +432,7 @@ namespace BatchDotnetTutorialFfmpeg
 
             ODATADetailLevel detail = new ODATADetailLevel(selectClause: "id");
 
-            IEnumerable<CloudTask> addedTasks = batchClient.JobOperations.ListTasks(jobId, detail);
+            List<CloudTask> addedTasks = await batchClient.JobOperations.ListTasks(jobId, detail).ToListAsync();
 
             Console.WriteLine("Monitoring all tasks for 'Completed' state, timeout in {0}...", timeout.ToString());
 
@@ -455,14 +442,15 @@ namespace BatchDotnetTutorialFfmpeg
             TaskStateMonitor taskStateMonitor = batchClient.Utilities.CreateTaskStateMonitor();
             try
             {
-                batchClient.Utilities.CreateTaskStateMonitor().WaitAll(addedTasks, TaskState.Completed, timeout);
+                await taskStateMonitor.WhenAll(addedTasks, TaskState.Completed, timeout);
             }
             catch (TimeoutException)
             {
-                batchClient.JobOperations.TerminateJob(jobId, failureMessage);
+                await batchClient.JobOperations.TerminateJobAsync(jobId, failureMessage);
                 Console.WriteLine(failureMessage);
+                return false;
             }
-            batchClient.JobOperations.TerminateJob(jobId, successMessage);
+            await batchClient.JobOperations.TerminateJobAsync(jobId, successMessage);
 
             // All tasks have reached the "Completed" state, however, this does not guarantee all tasks completed successfully.
             // Here we further check each task's ExecutionInformation property to ensure that it did not encounter a scheduling error
@@ -471,7 +459,7 @@ namespace BatchDotnetTutorialFfmpeg
             // Update the detail level to populate only the task id and executionInfo properties.
             detail.SelectClause = "id, executionInfo";
 
-            IEnumerable<CloudTask> completedTasks = batchClient.JobOperations.ListTasks(jobId, detail);
+            List<CloudTask> completedTasks = await batchClient.JobOperations.ListTasks(jobId, detail).ToListAsync();
 
             foreach (CloudTask task in completedTasks)
             {
@@ -498,6 +486,7 @@ namespace BatchDotnetTutorialFfmpeg
             {
                 Console.WriteLine("Success! All tasks completed successfully within the specified timeout period. Output files uploaded to output container.");
             }
+            return allTasksSuccessful;
         }
     }
 }
