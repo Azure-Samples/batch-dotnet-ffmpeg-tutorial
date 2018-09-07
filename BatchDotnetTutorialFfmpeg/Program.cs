@@ -86,8 +86,8 @@ namespace BatchDotnetTutorialFfmpeg
             timer.Start();
 
             // Construct the Storage account connection string
-            string storageConnectionString =
-                $"DefaultEndpointsProtocol=https;AccountName={StorageAccountName};AccountKey={StorageAccountKey}";
+            string storageConnectionString = String.Format("DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}",
+                                StorageAccountName, StorageAccountKey);
 
             // Retrieve the storage account
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
