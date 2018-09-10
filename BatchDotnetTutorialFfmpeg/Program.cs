@@ -7,6 +7,7 @@ namespace BatchDotnetTutorialFfmpeg
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Batch;
     using Microsoft.Azure.Batch.Auth;
@@ -423,8 +424,10 @@ namespace BatchDotnetTutorialFfmpeg
         private static async Task<bool> MonitorTasks(BatchClient batchClient, string jobId, TimeSpan timeout)
         {
             bool allTasksSuccessful = true;
-            const string successMessage = "All tasks reached state Completed.";
-            const string failureMessage = "One or more tasks failed to reach the Completed state within the timeout period.";
+            const string completeMessage = "All tasks reached state Completed.";
+            const string incompleteMessage = "One or more tasks failed to reach the Completed state within the timeout period.";
+            const string successMessage = "Success! All tasks completed successfully. Output files uploaded to output container.";
+            const string failureMessage = "One or more tasks failed.";
 
             // Obtain the collection of tasks currently managed by the job. 
             // Use a detail level to specify that only the "id" property of each task should be populated. 
@@ -446,47 +449,34 @@ namespace BatchDotnetTutorialFfmpeg
             }
             catch (TimeoutException)
             {
-                await batchClient.JobOperations.TerminateJobAsync(jobId, failureMessage);
-                Console.WriteLine(failureMessage);
+                await batchClient.JobOperations.TerminateJobAsync(jobId);
+                Console.WriteLine(incompleteMessage);
                 return false;
             }
-            await batchClient.JobOperations.TerminateJobAsync(jobId, successMessage);
+            await batchClient.JobOperations.TerminateJobAsync(jobId);
+            Console.WriteLine(completeMessage);
 
             // All tasks have reached the "Completed" state, however, this does not guarantee all tasks completed successfully.
-            // Here we further check each task's ExecutionInformation property to ensure that it did not encounter a scheduling error
-            // or return a non-zero exit code.
+            // Here we further check for any tasks with an execution result of "Failure".
 
-            // Update the detail level to populate only the task id and executionInfo properties.
-            detail.SelectClause = "id, executionInfo";
+            // Update the detail level to populate only the executionInfo property.
+            detail.SelectClause = "executionInfo";
+            // Filter for tasks with 'Failure' result.
+            detail.FilterClause = "executionInfo/result eq 'Failure'";
 
-            List<CloudTask> completedTasks = await batchClient.JobOperations.ListTasks(jobId, detail).ToListAsync();
-
-            foreach (CloudTask task in completedTasks)
+            List<CloudTask> failedTasks = await batchClient.JobOperations.ListTasks(jobId, detail).ToListAsync();
+          
+            if (failedTasks.Any())
             {
-                if (task.ExecutionInformation.Result == TaskExecutionResult.Failure)
-                {
-                    // A task with failure information set indicates there was a problem with the task. It is important to note that
-                    // the task's state can be "Completed," yet still have encountered a failure.
-
-                    allTasksSuccessful = false;
-
-                    Console.WriteLine("WARNING: Task [{0}] encountered a failure: {1}", task.Id, task.ExecutionInformation.FailureInformation.Message);
-                    if (task.ExecutionInformation.ExitCode != 0)
-                    {
-                        // A non-zero exit code may indicate that the application executed by the task encountered an error
-                        // during execution. As not every application returns non-zero on failure by default (e.g. robocopy),
-                        // your implementation of error checking may differ from this example.
-
-                        Console.WriteLine("WARNING: Task [{0}] returned a non-zero exit code - this may indicate task execution or completion failure.", task.Id);
-                    }
-                }
+                allTasksSuccessful = false;
+                Console.WriteLine(failureMessage);
             }
 
             if (allTasksSuccessful)
             {
-                Console.WriteLine("Success! All tasks completed successfully within the specified timeout period. Output files uploaded to output container.");
+                Console.WriteLine(successMessage);
             }
-            return allTasksSuccessful;
+        return allTasksSuccessful;
         }
     }
 }
