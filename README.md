@@ -1,7 +1,11 @@
 ---
-services: batch, storage
-platforms: dotnet
-author: dlepow
+page_type: sample
+languages:
+- csharp
+products:
+- azure
+description: "A .NET application that uses Batch to process media files in parallel with the ffmpeg open-source tool."
+urlFragment: batch-dotnet-ffmpeg-tutorial
 ---
 
 # Azure Batch .NET File Processing with ffmpeg
