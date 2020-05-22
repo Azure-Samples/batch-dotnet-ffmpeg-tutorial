@@ -225,7 +225,6 @@ namespace BatchDotnetTutorialFfmpeg
             Console.WriteLine("Uploading file {0} to container [{1}]...", filePath, containerName);
 
             string blobName = Path.GetFileName(filePath);
-            var fileStream = System.IO.File.OpenRead(filePath);
 
             CloudBlobContainer container = blobClient.GetContainerReference(containerName);
             CloudBlockBlob blobData = container.GetBlockBlobReference(blobName);
