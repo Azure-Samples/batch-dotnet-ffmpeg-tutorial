@@ -311,7 +311,7 @@ namespace BatchDotnetTutorialFfmpeg
 
                 // Specify the application and version to install on the compute nodes
                 // This assumes that a Windows 64-bit zipfile of ffmpeg has been added to Batch account
-                // with Application Id of "ffmpeg" and Version of "3.4".
+                // with Application Id of "ffmpeg" and Version of "4.3.1".
                 // Download the zipfile https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-4.3.1-2020-09-21-full_build.zip
                 // to upload as application package
                 pool.ApplicationPackageReferences = new List<ApplicationPackageReference>
