@@ -312,7 +312,7 @@ namespace BatchDotnetTutorialFfmpeg
                 // Specify the application and version to install on the compute nodes
                 // This assumes that a Windows 64-bit zipfile of ffmpeg has been added to Batch account
                 // with Application Id of "ffmpeg" and Version of "3.4".
-                // Download the zipfile https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip
+                // Download the zipfile https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-4.3.1-2020-09-21-full_build.zip
                 // to upload as application package
                 pool.ApplicationPackageReferences = new List<ApplicationPackageReference>
                 {
@@ -389,7 +389,7 @@ namespace BatchDotnetTutorialFfmpeg
                 string outputMediaFile = String.Format("{0}{1}",
                     System.IO.Path.GetFileNameWithoutExtension(inputMediaFile),
                     ".mp3");
-                string taskCommandLine = String.Format("cmd /c {0}\\ffmpeg-3.4-win64-static\\bin\\ffmpeg.exe -i {1} {2}", appPath, inputMediaFile, outputMediaFile);
+                string taskCommandLine = String.Format("cmd /c {0}\\ffmpeg-4.3.1-2020-09-21-full_build\\bin\\ffmpeg.exe -i {1} {2}", appPath, inputMediaFile, outputMediaFile);
 
                 // Create a cloud task (with the task ID and command line) and add it to the task list
                 CloudTask task = new CloudTask(taskId, taskCommandLine);
