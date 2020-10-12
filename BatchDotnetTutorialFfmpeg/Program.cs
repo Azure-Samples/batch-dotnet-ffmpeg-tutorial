@@ -318,8 +318,8 @@ namespace BatchDotnetTutorialFfmpeg
                 {
                     new ApplicationPackageReference
                     {
-                    ApplicationId = appPackageId,
-                    Version = appPackageVersion
+                        ApplicationId = appPackageId,
+                        Version = appPackageVersion
                     }
                 };
 
@@ -347,14 +347,13 @@ namespace BatchDotnetTutorialFfmpeg
         /// <param name="poolId">ID of the CloudPool object in which to create the job.</param>
         private static async Task CreateJobAsync(BatchClient batchClient, string jobId, string poolId)
         {
-            
-                Console.WriteLine("Creating job [{0}]...", jobId);
+            Console.WriteLine("Creating job [{0}]...", jobId);
 
-                CloudJob job = batchClient.JobOperations.CreateJob();
-                job.Id = jobId;
-                job.PoolInformation = new PoolInformation { PoolId = poolId };
+            CloudJob job = batchClient.JobOperations.CreateJob();
+            job.Id = jobId;
+            job.PoolInformation = new PoolInformation { PoolId = poolId };
 
-                await job.CommitAsync();
+            await job.CommitAsync();
         }
        
 
