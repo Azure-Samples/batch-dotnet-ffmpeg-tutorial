@@ -475,7 +475,8 @@ namespace BatchDotnetTutorialFfmpeg
             {
                 Console.WriteLine(successMessage);
             }
-        return allTasksSuccessful;
+
+            return allTasksSuccessful;
         }
     }
 }
