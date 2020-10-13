@@ -325,17 +325,10 @@ namespace BatchDotnetTutorialFfmpeg
 
                 await pool.CommitAsync();
             }
-            catch (BatchException be)
+            // Accept the specific error code PoolExists as that is expected if the pool already exists
+            catch (BatchException be) when (be.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.PoolExists)
             {
-                // Accept the specific error code PoolExists as that is expected if the pool already exists
-                if (be.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.PoolExists)
-                {
-                    Console.WriteLine("The pool {0} already existed when we tried to create it", poolId);
-                }
-                else
-                {
-                    throw; // Any other exception is unexpected
-                }
+                Console.WriteLine("The pool {0} already existed when we tried to create it", poolId);
             }
         }
 
