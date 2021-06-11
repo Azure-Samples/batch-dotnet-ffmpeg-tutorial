@@ -393,6 +393,16 @@ namespace BatchDotnetTutorialFfmpeg
                 // Create a cloud task (with the task ID and command line) and add it to the task list
                 CloudTask task = new CloudTask(taskId, taskCommandLine);
                 task.ResourceFiles = new List<ResourceFile> { inputFiles[i] };
+                
+                // Specify the application and version to install on the compute nodes for the task
+                task.ApplicationPackageReferences = new List<ApplicationPackageReference>
+                {
+                    new ApplicationPackageReference
+                    {
+                        ApplicationId = appPackageId,
+                        Version = appPackageVersion
+                    }
+                };
 
                 // Task output file will be uploaded to the output container in Storage.
 
