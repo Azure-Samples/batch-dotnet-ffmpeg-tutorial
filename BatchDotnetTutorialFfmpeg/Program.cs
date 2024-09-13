@@ -81,9 +81,7 @@ namespace BatchDotnetTutorialFfmpeg
 
 
             // TODO: Replace <storage-account-name> with your actual storage account name
-            //Uri accountUri = new Uri("https://batchdotnettuturialsa.blob.core.windows.net/");
-            Uri accountUri = new Uri("https://dotnotsdkbatchstorage1.blob.core.windows.net/");
-
+            Uri accountUri = new Uri("https://<storage-account-name>.blob.core.windows.net/");
             
             BlobServiceClient blobServerClient = new BlobServiceClient(accountUri, new DefaultAzureCredential());
 
@@ -116,7 +114,7 @@ namespace BatchDotnetTutorialFfmpeg
             // The Batch client allows the app to interact with the Batch service.
 
             // TODO: Replace <batch-account-name> with your actual batch account name
-            Uri batchUri = new Uri("https://dotnotsdkbatchaccount1.eastus.batch.azure.com");
+            Uri batchUri = new Uri("https://<batch-account-name>.eastus.batch.azure.com");
             BatchClient batchClient = new BatchClient(batchUri, new DefaultAzureCredential());
 
 
@@ -362,7 +360,8 @@ namespace BatchDotnetTutorialFfmpeg
                 batchTaskCreateContent.ResourceFiles.Add(inputFiles[i]);
 
                 // Task output file will be uploaded to the output container in Storage.
-                OutputFileBlobContainerDestination outputContainer = new OutputFileBlobContainerDestination("https://dotnotsdkbatchstorage1.blob.core.windows.net/output/" + outputMediaFile)
+                // TODO: Replace <storage-account-name> with your actual storage account name
+                OutputFileBlobContainerDestination outputContainer = new OutputFileBlobContainerDestination("https://<storage-account-name>.blob.core.windows.net/output/" + outputMediaFile)
                 {
                     IdentityReference = inputFiles[i].IdentityReference,
                 };
