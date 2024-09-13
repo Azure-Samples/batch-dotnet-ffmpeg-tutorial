@@ -33,16 +33,18 @@ namespace BatchDotnetTutorialFfmpeg
         private const int LowPriorityNodeCount = 5;
         private const string PoolVMSize = "STANDARD_A1_v2";
         private const string JobId = "WinFFmpegJob";
-        private const string ManagedIdentityId = "/subscriptions/6602ac9a-5dad-41bd-a792-592c704b6a31/resourcegroups/rg-wiborisbatch/providers/Microsoft.ManagedIdentity/userAssignedIdentities/dotnotsdkbatchmi1";
-
-        private const string BatchAccountResourceID = "/subscriptions/6602ac9a-5dad-41bd-a792-592c704b6a31/resourceGroups/rg-wiborisbatch/providers/Microsoft.Batch/batchAccounts/dotnotsdkbatchaccount1";
+        // TODO: Replace <Managed-Identiy-Resource-ID> with your actual managed account Resource Id
+        private const string ManagedIdentityId = "<Managed-Identiy-Resource-ID>";
+        // TODO: Replace <Batch-Account-Resource-ID> with your actual batch account Resource Id
+        private const string BatchAccountResourceID = "<Batch-Account-Resource-ID>";
 
         // Application package Id and version
         // This assumes the Windows ffmpeg app package is already added to the Batch account with this Id and version. 
         // First download ffmpeg zipfile from https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-3.4-win64-static.zip.
         // To add package to the Batch account, see https://docs.microsoft.com/azure/batch/batch-application-packages.
         const string appPackageId = "ffmpeg";
-        const string appPacakgeResourceID = "/subscriptions/6602ac9a-5dad-41bd-a792-592c704b6a31/resourceGroups/rg-wiborisbatch/providers/Microsoft.Batch/batchAccounts/dotnotsdkbatchaccount1/applications/ffmpeg";
+        // TODO: Replace <Subscription-ID>, <Resource-Group-ID>, <Batch-Account-Name> with your values.
+        const string appPacakgeResourceID = "/subscriptions/<Subscription-ID>/resourceGroups/<Resource-Group-ID>/providers/Microsoft.Batch/batchAccounts/<Batch-Account-Name>/applications/ffmpeg";
         const string appPackageVersion = "4.3.1";
 
         public static void Main(string[] args)
